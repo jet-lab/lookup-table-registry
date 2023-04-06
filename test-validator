@@ -1,0 +1,9 @@
+upload-idl() {
+        sleep 5
+        anchor idl init -f ./target/idl/lookup_table_registry.json Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS --provider.cluster localnet
+}
+
+anchor build
+upload-idl &
+solana-test-validator --reset \
+        --bpf-program LTR8xXcSrEDsCbTWPY4JmJREFdMz4uYh65uajkVjzru target/bpfel-unknown-unknown/release/lookup_table_registry.so

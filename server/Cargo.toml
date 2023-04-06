@@ -1,0 +1,19 @@
+[package]
+name = "lookup-registry-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.6"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+serde = { version = "1", features = ["derive"] }
+serde_with = "2"
+tower-http = { version = "0.4", features = ["cors"] }
+dotenv = "0.15"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+solana-client = "1.14"
+solana-sdk = "1.14"
+
+lookup-table-registry-client = { path = "../libraries/rust" }
