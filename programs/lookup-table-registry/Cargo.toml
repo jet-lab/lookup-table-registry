@@ -13,9 +13,9 @@ no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
-default = []
+default = ["solana-address-lookup-table-program"]
 
 [dependencies]
 anchor-lang = "0.26.0"
 solana-program = "1.14"
-solana-address-lookup-table-program = "1.14"
+solana-address-lookup-table-program = { version = "1.14", optional = true }
