@@ -14,7 +14,7 @@ no-idl = []
 no-log-ix-name = []
 api = ["solana-address-lookup-table-program-gateway/stub-id"]
 program = ["solana-address-lookup-table-program-gateway/full"]
-cpi = ["no-entrypoint"]
+cpi = ["no-entrypoint", "api"]
 default = ["program"]
 
 [dependencies]
