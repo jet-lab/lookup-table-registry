@@ -1,18 +1,21 @@
-#[cfg(any(test, feature = "stub-id"))]
-solana_program::declare_id!("AddressLookupTab1e1111111111111111111111111");
+mod stub {
+    #[cfg(any(test, all(not(feature = "full"), feature = "stub-id")))]
+    solana_program::declare_id!("AddressLookupTab1e1111111111111111111111111");
 
-#[cfg(any(test, feature = "stub-instruction"))]
-pub mod instruction;
+    #[cfg(any(test, all(not(feature = "full"), feature = "stub-instruction")))]
+    pub mod instruction;
 
-#[cfg(any(test, feature = "stub-state"))]
-pub mod state;
+    #[cfg(any(test, all(not(feature = "full"), feature = "stub-state")))]
+    pub mod state;
+}
+pub use stub::*;
 
 #[cfg(feature = "full")]
 pub use solana_address_lookup_table_program::*;
 
 #[test]
 fn stub_id_is_correct() {
-    assert_eq!(ID, solana_address_lookup_table_program::ID);
+    assert_eq!(stub::ID, solana_address_lookup_table_program::ID);
 }
 
 #[cfg(test)]
