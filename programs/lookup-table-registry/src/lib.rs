@@ -21,22 +21,11 @@
 #![allow(clippy::result_large_err, clippy::assertions_on_constants)]
 
 use anchor_lang::prelude::*;
+use solana_address_lookup_table_program_gateway as solana_address_lookup_table_program;
 
 declare_id!("LTR8xXcSrEDsCbTWPY4JmJREFdMz4uYh65uajkVjzru");
 
 mod state;
-
-pub mod solana_address_lookup_table_program {
-    #[cfg(feature = "solana-address-lookup-table-program")]
-    pub use solana_address_lookup_table_program::*;
-
-    solana_program::declare_id!("AddressLookupTab1e1111111111111111111111111");
-
-    #[test]
-    fn id_is_correct() {
-        assert_eq!(ID, solana_address_lookup_table_program::ID);
-    }
-}
 
 pub use state::*;
 
@@ -51,8 +40,8 @@ pub mod discriminator {
 }
 
 /// Lookup table registry program stub
-#[cfg_attr(not(feature = "solana-address-lookup-table-program"), program)]
-#[cfg(not(feature = "solana-address-lookup-table-program"))]
+#[cfg_attr(not(feature = "program"), program)]
+#[cfg(not(feature = "program"))]
 #[allow(unused)]
 pub mod lookup_table_registry {
     use super::*;
@@ -90,8 +79,8 @@ pub mod lookup_table_registry {
 }
 
 /// Lookup table registry program
-#[cfg_attr(feature = "solana-address-lookup-table-program", program)]
-#[cfg(feature = "solana-address-lookup-table-program")]
+#[cfg_attr(feature = "program", program)]
+#[cfg(feature = "program")]
 pub mod lookup_table_registry {
     use solana_program::program::invoke;
 

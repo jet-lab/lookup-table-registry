@@ -12,10 +12,14 @@ name = "lookup_table_registry"
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
+api = ["solana-address-lookup-table-program-gateway/stub-id"]
+program = ["solana-address-lookup-table-program-gateway/full"]
 cpi = ["no-entrypoint"]
-default = ["solana-address-lookup-table-program"]
+default = ["program"]
 
 [dependencies]
 anchor-lang = "0.26.0"
 solana-program = "1.14"
-solana-address-lookup-table-program = { version = "1.14", optional = true }
+
+[dependencies.solana-address-lookup-table-program-gateway]
+path = "../../libraries/solana-address-lookup-table-program-gateway"

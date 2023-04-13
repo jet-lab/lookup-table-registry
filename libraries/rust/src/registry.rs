@@ -4,7 +4,7 @@ use std::{collections::HashSet, sync::Arc};
 
 use anchor_lang::{prelude::Pubkey, AccountDeserialize};
 use lookup_table_registry::{RegistryAccount, RegistryEntry};
-use solana_address_lookup_table_program::state::AddressLookupTable;
+use solana_address_lookup_table_program_gateway::state::AddressLookupTable;
 use solana_client::{nonblocking::rpc_client::RpcClient, rpc_config::RpcSendTransactionConfig};
 use solana_sdk::{
     account::ReadableAccount,

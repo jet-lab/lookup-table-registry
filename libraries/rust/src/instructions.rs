@@ -8,7 +8,7 @@ use anchor_lang::{InstructionData, ToAccountMetas};
 use lookup_table_registry::{
     accounts as ix_accounts, instruction as ix_data, ID as LOOKUP_REGISTRY_ID,
 };
-use solana_address_lookup_table_program::ID as LOOKUP_ID;
+use solana_address_lookup_table_program_gateway::ID as LOOKUP_ID;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::system_program::ID as SYSTEM_PROGAM_ID;
 use solana_sdk::{instruction::Instruction, pubkey::Pubkey};
@@ -68,7 +68,7 @@ impl InstructionBuilder {
         // Get slot
         let recent_slot = self.rpc.get_slot().await.unwrap();
         let lookup_table =
-            solana_address_lookup_table_program::instruction::derive_lookup_table_address(
+            solana_address_lookup_table_program_gateway::instruction::derive_lookup_table_address(
                 &self.authority,
                 recent_slot,
             )
