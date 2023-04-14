@@ -21,6 +21,7 @@
 #![allow(clippy::result_large_err, clippy::assertions_on_constants)]
 
 use anchor_lang::prelude::*;
+use solana_address_lookup_table_program_gateway as solana_address_lookup_table_program;
 
 declare_id!("LTR8xXcSrEDsCbTWPY4JmJREFdMz4uYh65uajkVjzru");
 
@@ -38,8 +39,48 @@ pub mod discriminator {
     const _: () = assert!(EMPTY < DEACTIVATED);
 }
 
+/// Lookup table registry program stub
+#[cfg_attr(not(feature = "program"), program)]
+#[cfg(not(feature = "program"))]
+#[allow(unused)]
+pub mod lookup_table_registry {
+    use super::*;
+
+    /// Initialize a registry account owned by the authority.
+    ///
+    /// Errors if a registry account already exists.
+    pub fn init_registry_account(ctx: Context<InitRegistryAccount>) -> Result<()> {
+        unimplemented!()
+    }
+
+    /// Create a lookup table in the registry
+    pub fn create_lookup_table(
+        ctx: Context<CreateLookupTable>,
+        recent_slot: u64,
+        _discriminator: u64,
+    ) -> Result<()> {
+        unimplemented!()
+    }
+
+    /// Add addresses to a lookup table.
+    pub fn append_to_lookup_table(
+        ctx: Context<AppendToLookupTable>,
+        addresses: Vec<Pubkey>,
+        _discriminator: u64,
+    ) -> Result<()> {
+        unimplemented!()
+    }
+
+    /// Remove a lookup table by either deactivating or deleting it depending on its
+    /// current status.
+    pub fn remove_lookup_table(ctx: Context<RemoveLookupTable>) -> Result<()> {
+        unimplemented!()
+    }
+}
+
 /// Lookup table registry program
-#[program]
+#[cfg_attr(feature = "program", program)]
+#[cfg(feature = "program")]
 pub mod lookup_table_registry {
     use solana_program::program::invoke;
 

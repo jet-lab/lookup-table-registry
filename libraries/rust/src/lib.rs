@@ -7,8 +7,8 @@ use std::sync::Arc;
 use anchor_lang::{prelude::Pubkey, AccountDeserialize};
 use lookup_table_registry::RegistryAccount;
 pub use lookup_table_registry::ID as LOOKUP_TABLE_REGISTRY_ID;
-use solana_address_lookup_table_program::state::AddressLookupTable;
-pub use solana_address_lookup_table_program::ID as LOOKUP_TABLE_ID;
+use solana_address_lookup_table_program_gateway::state::AddressLookupTable;
+pub use solana_address_lookup_table_program_gateway::ID as LOOKUP_TABLE_ID;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{account::ReadableAccount, transaction::TransactionError};
 
@@ -90,7 +90,7 @@ pub struct Entry {
 }
 
 pub fn derive_lookup_table_address(authority: &Pubkey, recent_block_slot: u64) -> Pubkey {
-    solana_address_lookup_table_program::instruction::derive_lookup_table_address(
+    solana_address_lookup_table_program_gateway::instruction::derive_lookup_table_address(
         authority,
         recent_block_slot,
     )

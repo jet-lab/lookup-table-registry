@@ -11,9 +11,15 @@ endorphin = "0.1"
 solana-client = "1.14"
 solana-sdk = "1.14"
 anchor-lang = "0.26.0"
-solana-address-lookup-table-program = "1.14"
 
-lookup-table-registry = { path = "../../programs/lookup-table-registry", features = ["cpi"] }
+[dependencies.solana-address-lookup-table-program-gateway]
+path = "../solana-address-lookup-table-program-gateway"
+features = ["stub-id", "stub-instruction", "stub-state"]
+
+[dependencies.lookup-table-registry]
+path = "../../programs/lookup-table-registry"
+default-features = false
+features = ["cpi"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros"] }
