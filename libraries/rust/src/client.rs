@@ -108,6 +108,24 @@ impl LookupRegistryClient {
             unmatched: accounts.len(),
         }
     }
+
+    pub async fn get_registry(&self, authority: &Pubkey) -> Option<Registry> {
+        let registry = {
+            let reader = self.cache.read().unwrap();
+            reader.get(authority).cloned()
+        };
+        match registry {
+            Some(registry) => Some(registry),
+            None => {
+                let Ok(registry) = Registry::fetch(&self.rpc, authority).await else {
+                    return None;
+                };
+                let mut writer = self.cache.write().unwrap();
+                writer.insert(*authority, registry, Duration::from_secs(3600));
+                writer.get(authority).cloned()
+            }
+        }
+    }
 }
 
 pub struct FindAddressesResult {

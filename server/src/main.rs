@@ -1,7 +1,8 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use axum::routing::post;
+use axum::extract::Path;
+use axum::routing::{get, post};
 use axum::{response::IntoResponse, Extension, Json, Router};
 use lookup_table_registry_client::client::LookupRegistryClient;
 use serde::{Deserialize, Serialize};
@@ -25,6 +26,10 @@ async fn main() {
 
     let app = Router::new()
         .route("/lookup/get_addresses", post(get_lookup_addresses))
+        .route(
+            "/lookup/authority_addresses/:authority",
+            get(get_authority_addresses),
+        )
         .layer(CorsLayer::permissive())
         .layer(Extension(context));
 
@@ -34,6 +39,32 @@ async fn main() {
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();
+}
+
+async fn get_authority_addresses(
+    Extension(context): Extension<ApiContext>,
+    Path(authority): Path<String>,
+) -> impl IntoResponse {
+    // Check that authority is a valid pubkey
+    let Ok(authority) = authority.parse::<Pubkey>() else {
+        return Json(GetAuthorityAddressesResponse { authority: Default::default(), addresses: vec![] })
+    };
+    let addresses = context
+        .registry_client
+        .get_registry(&authority)
+        .await
+        .map(|registry| {
+            registry
+                .tables
+                .iter()
+                .map(|table| table.lookup_address)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    Json(GetAuthorityAddressesResponse {
+        authority,
+        addresses,
+    })
 }
 
 async fn get_lookup_addresses(
@@ -68,6 +99,15 @@ struct GetAddressesResponse {
     addresses: Vec<Pubkey>,
     distinct_accounts: usize,
     unmatched_accounts: usize,
+}
+
+#[serde_as]
+#[derive(Serialize, Deserialize)]
+struct GetAuthorityAddressesResponse {
+    #[serde_as(as = "DisplayFromStr")]
+    authority: Pubkey,
+    #[serde_as(as = "Vec<DisplayFromStr>")]
+    addresses: Vec<Pubkey>,
 }
 
 #[serde_as]

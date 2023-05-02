@@ -41,7 +41,7 @@ pub fn create_lookup_table(
             AccountMeta::new_readonly(system_program::id(), false),
         ],
     );
-    
+
     (instruction, lookup_table_address)
 }
 
@@ -74,10 +74,15 @@ pub fn extend_lookup_table(
 
 #[derive(Serialize)]
 enum ProgramInstruction {
-    CreateLookupTable { recent_slot: Slot, bump_seed: u8 },
+    CreateLookupTable {
+        recent_slot: Slot,
+        bump_seed: u8,
+    },
     #[allow(dead_code)]
     FreezeLookupTable,
-    ExtendLookupTable { new_addresses: Vec<Pubkey> },
+    ExtendLookupTable {
+        new_addresses: Vec<Pubkey>,
+    },
 }
 
 #[cfg(test)]

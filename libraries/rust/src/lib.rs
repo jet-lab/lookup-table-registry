@@ -12,7 +12,7 @@ pub use solana_address_lookup_table_program_gateway::ID as LOOKUP_TABLE_ID;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{account::ReadableAccount, transaction::TransactionError};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Registry {
     pub authority: Pubkey,
     pub version: u8,
@@ -75,7 +75,7 @@ impl Registry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Entry {
     pub discriminator: u64,
     pub lookup_address: Pubkey,
