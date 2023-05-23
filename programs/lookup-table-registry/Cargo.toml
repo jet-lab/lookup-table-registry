@@ -18,7 +18,7 @@ cpi = ["no-entrypoint", "api"]
 default = ["program"]
 
 [dependencies]
-anchor-lang = "0.27.0"
+anchor-lang = ">=0.26.0"
 solana-program = "1.14"
 
 [dependencies.solana-address-lookup-table-program-gateway]

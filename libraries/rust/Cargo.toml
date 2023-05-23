@@ -10,7 +10,7 @@ endorphin = "0.1"
 
 solana-client = "1.14"
 solana-sdk = "1.14"
-anchor-lang = "0.27.0"
+anchor-lang = ">=0.26.0"
 
 [dependencies.solana-address-lookup-table-program-gateway]
 path = "../solana-address-lookup-table-program-gateway"
