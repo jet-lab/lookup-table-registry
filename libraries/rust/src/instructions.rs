@@ -2,23 +2,17 @@
 //! The instruction builder is useful if wanting to combine instructions,
 //! otherwise use [crate::registy::LookupRegistry].
 
-use std::sync::Arc;
-
 use anchor_lang::{InstructionData, ToAccountMetas};
 use lookup_table_registry::{
     accounts as ix_accounts, instruction as ix_data, ID as LOOKUP_REGISTRY_ID,
 };
 use solana_address_lookup_table_program_gateway::ID as LOOKUP_ID;
-use solana_client::nonblocking::rpc_client::RpcClient;
-use solana_sdk::system_program::ID as SYSTEM_PROGAM_ID;
-use solana_sdk::{instruction::Instruction, pubkey::Pubkey};
-
-use crate::Result;
+use solana_sdk::{
+    instruction::Instruction, pubkey::Pubkey, system_program::ID as SYSTEM_PROGAM_ID,
+};
 
 /// An instruction builder of the lookup table registry program.
 pub struct InstructionBuilder {
-    /// Solana client
-    rpc: Arc<RpcClient>,
     /// The authority that owns the lookup table
     pub authority: Pubkey,
     /// The payer of transaction costs and rent
@@ -27,25 +21,12 @@ pub struct InstructionBuilder {
 
 impl InstructionBuilder {
     /// Creates a new instruction builder
-    pub fn new(rpc: Arc<RpcClient>, authority: Pubkey, payer: Pubkey) -> Self {
-        Self {
-            rpc,
-            authority,
-            payer,
-        }
+    pub fn new(authority: Pubkey, payer: Pubkey) -> Self {
+        Self { authority, payer }
     }
 
     /// Creates an instruction to initialize a lookup table registry.
-    ///
-    /// Checks if the registry already exists.
-    pub async fn init_registry(&self) -> Result<Instruction> {
-        // Check if the registry already exists, error if it does
-        let registry_account = self.registry_address();
-        if self.rpc.get_account(&registry_account).await.is_ok() {
-            return Err(crate::LookupRegistryError::InvalidArgument(
-                "Registry account exists".to_string(),
-            ));
-        }
+    pub fn init_registry(&self) -> Instruction {
         let accounts = ix_accounts::InitRegistryAccount {
             authority: self.authority,
             payer: self.payer,
@@ -54,19 +35,23 @@ impl InstructionBuilder {
         }
         .to_account_metas(None);
 
-        Ok(Instruction {
+        Instruction {
             program_id: LOOKUP_REGISTRY_ID,
             accounts,
             data: ix_data::InitRegistryAccount {}.data(),
-        })
+        }
     }
 
     /// Instruction to create a lookup table.
     ///
-    /// Returns the address of the lookup table and the slot used in creating it.
-    pub async fn create_lookup_table(&self, _discriminator: u64) -> (Instruction, Pubkey, u64) {
+    /// Returns the address of the lookup table with the instruction to create it.
+    pub fn create_lookup_table(
+        &self,
+        recent_slot: u64,
+        // Not required, kept for future compat purposes
+        _discriminator: u64,
+    ) -> (Instruction, Pubkey) {
         // Get slot
-        let recent_slot = self.rpc.get_slot().await.unwrap();
         let lookup_table =
             solana_address_lookup_table_program_gateway::instruction::derive_lookup_table_address(
                 &self.authority,
@@ -94,12 +79,11 @@ impl InstructionBuilder {
                 .data(),
             },
             lookup_table,
-            recent_slot,
         )
     }
 
     /// Creates an instruction to remove a lookup table.
-    pub async fn remove_lookup_table(&self, lookup_table: Pubkey) -> Instruction {
+    pub fn remove_lookup_table(&self, lookup_table: Pubkey) -> Instruction {
         let accounts = ix_accounts::RemoveLookupTable {
             authority: self.authority,
             recipient: self.payer,

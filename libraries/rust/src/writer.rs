@@ -7,28 +7,25 @@ use lookup_table_registry::{RegistryAccount, RegistryEntry};
 use solana_address_lookup_table_program_gateway::state::AddressLookupTable;
 use solana_client::{nonblocking::rpc_client::RpcClient, rpc_config::RpcSendTransactionConfig};
 use solana_sdk::{
-    account::ReadableAccount,
-    address_lookup_table_account::AddressLookupTableAccount,
-    commitment_config::CommitmentConfig,
-    instruction::Instruction,
-    signature::{Keypair, Signature},
-    transaction::Transaction,
+    account::ReadableAccount, address_lookup_table_account::AddressLookupTableAccount,
+    commitment_config::CommitmentConfig, instruction::Instruction, signature::Signature,
+    signer::Signer, transaction::Transaction,
 };
 
-use crate::Result;
-use crate::{instructions::InstructionBuilder, LookupRegistryError};
+use crate::common::{LookupRegistryError, Result};
+use crate::instructions::InstructionBuilder;
 
-/// A low level lookup registry client
-pub struct LookupRegistry {
+/// A writer client that creates and updates a registry
+pub struct LookupRegistryWriter {
     rpc: Arc<RpcClient>,
     registry_address: Pubkey,
     builder: InstructionBuilder,
 }
 
-impl LookupRegistry {
+impl LookupRegistryWriter {
     /// Create a new lookup registry instance without checking if it exists on-chain
     pub fn new(rpc: &Arc<RpcClient>, authority: Pubkey, payer: Pubkey) -> Self {
-        let builder = InstructionBuilder::new(rpc.clone(), authority, payer);
+        let builder = InstructionBuilder::new(authority, payer);
 
         Self {
             rpc: rpc.clone(),
@@ -38,16 +35,28 @@ impl LookupRegistry {
     }
 
     /// Create a new empty lookup registry
-    pub async fn create(
+    pub async fn new_or_create(
         rpc: &Arc<RpcClient>,
         authority: Pubkey,
         payer: Pubkey,
-        signer: &Keypair,
+        signer: &dyn Signer,
     ) -> Result<Self> {
-        let builder = InstructionBuilder::new(rpc.clone(), authority, payer);
-        let create_ix = builder.init_registry().await?;
-        let hash = rpc.get_latest_blockhash().await.unwrap();
+        let builder = InstructionBuilder::new(authority, payer);
+        let create_ix = builder.init_registry();
 
+        // Check if a registry exists, and create it if it does not.
+        let registry_address = builder.registry_address();
+        // We don't check for network errors. If there's a connection error,
+        // it'll likely also affect creating the registry.
+        if rpc.get_account(&registry_address).await.is_ok() {
+            return Ok(Self {
+                rpc: rpc.clone(),
+                registry_address,
+                builder,
+            });
+        }
+
+        let hash = rpc.get_latest_blockhash().await?;
         let transaction =
             Transaction::new_signed_with_payer(&[create_ix], Some(&payer), &[signer], hash);
 
@@ -58,8 +67,7 @@ impl LookupRegistry {
                 ..Default::default()
             },
         )
-        .await
-        .unwrap();
+        .await?;
 
         Ok(Self {
             rpc: rpc.clone(),
@@ -73,8 +81,8 @@ impl LookupRegistry {
     /// Errors:
     /// - Registry has not been created
     pub async fn get_registry(&self) -> Result<RegistryAccount> {
-        let account = self.rpc.get_account(&self.registry_address).await.unwrap();
-        let registry_account = RegistryAccount::try_deserialize(&mut account.data()).unwrap();
+        let account = self.rpc.get_account(&self.registry_address).await?;
+        let registry_account = RegistryAccount::try_deserialize(&mut account.data())?;
         Ok(registry_account)
     }
 
@@ -104,15 +112,13 @@ impl LookupRegistry {
         let accounts = self
             .rpc
             .get_multiple_accounts(&[self.registry_address, lookup_table])
-            .await
-            .unwrap();
+            .await?;
         // Elide bound checks
         assert_eq!(accounts.len(), 2);
         let (Some(registry_account), Some(lookup_table_account)) = (&accounts[0], &accounts[1]) else {
             return Err(LookupRegistryError::InvalidArgument("Registry account or lookup table not found".to_string()));
         };
-        let registry_account =
-            RegistryAccount::try_deserialize(&mut registry_account.data()).unwrap();
+        let registry_account = RegistryAccount::try_deserialize(&mut registry_account.data())?;
         // Check if the registry has the lookup table, otherwise it doesn't own it
         let Some(registry_entry) = registry_account
             .tables
@@ -123,7 +129,8 @@ impl LookupRegistry {
         };
         // Now deserialize the lookup table
         let table = {
-            let table = AddressLookupTable::deserialize(lookup_table_account.data()).unwrap();
+            let table = AddressLookupTable::deserialize(lookup_table_account.data())
+                .map_err(|e| LookupRegistryError::GeneralError(e.to_string()))?;
             AddressLookupTableAccount {
                 key: lookup_table,
                 addresses: table.addresses.to_vec(),
@@ -136,16 +143,17 @@ impl LookupRegistry {
     pub async fn create_lookup_table(
         &self,
         payer: Option<&Pubkey>,
-        signer: &Keypair,
+        signer: &dyn Signer,
         discriminator: u64,
     ) -> Result<(Pubkey, u64)> {
         // Introduce a small delay to prevent slot conflicts
         tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-        let (ix, table, slot) = self.builder.create_lookup_table(discriminator).await;
+        let recent_slot = self.rpc.get_slot().await?;
+        let (ix, table) = self.builder.create_lookup_table(recent_slot, discriminator);
 
         self.send_transaction(&[ix], payer, signer).await?;
 
-        Ok((table, slot))
+        Ok((table, recent_slot))
     }
 
     /// Removes a lookup table by either deactivating or closing it.
@@ -157,9 +165,9 @@ impl LookupRegistry {
         &self,
         lookup_table: Pubkey,
         payer: Option<&Pubkey>,
-        signer: &Keypair,
+        signer: &dyn Signer,
     ) -> Result<()> {
-        let ix = self.builder.remove_lookup_table(lookup_table).await;
+        let ix = self.builder.remove_lookup_table(lookup_table);
 
         self.send_transaction(&[ix], payer, signer).await?;
 
@@ -172,7 +180,7 @@ impl LookupRegistry {
         lookup_table: Pubkey,
         addresses: &[Pubkey],
         payer: Option<&Pubkey>,
-        signer: &Keypair,
+        signer: &dyn Signer,
     ) -> Result<()> {
         let (entry, table) = self.get_lookup_table(lookup_table).await?;
         let distinct_addresses = addresses
@@ -197,9 +205,9 @@ impl LookupRegistry {
         &self,
         instructions: &[Instruction],
         payer: Option<&Pubkey>,
-        signer: &Keypair,
+        signer: &dyn Signer,
     ) -> Result<Signature> {
-        let hash = self.rpc.get_latest_blockhash().await.unwrap();
+        let hash = self.rpc.get_latest_blockhash().await?;
 
         let transaction = Transaction::new_signed_with_payer(instructions, payer, &[signer], hash);
 
@@ -235,12 +243,11 @@ mod tests {
             "http://localhost:8899".to_string(),
             CommitmentConfig::processed(),
         ));
-        rpc.request_airdrop(&authority, 3_000_000_000)
-            .await
-            .unwrap();
+        rpc.request_airdrop(&authority, 3_000_000_000).await?;
 
         let registry =
-            LookupRegistry::create(&rpc, authority, authority, &authority_keypair).await?;
+            LookupRegistryWriter::new_or_create(&rpc, authority, authority, &authority_keypair)
+                .await?;
 
         // Create a lookup table in the registry
         let (lookup_table, _) = registry

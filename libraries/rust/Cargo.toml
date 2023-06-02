@@ -3,18 +3,22 @@ name = "lookup-table-registry-client"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-tokio = { version = "1", features = ["sync"] }
-thiserror = "1"
-endorphin = "0.1"
+[features]
+client = ["solana-client", "tokio", "thiserror", "endorphin"]
+default = ["client"]
 
-solana-client = "1.14"
+[dependencies]
+tokio = { version = "1", features = ["sync"], optional = true }
+thiserror = { version = "1", optional = true }
+endorphin = { version = "0.1", optional = true }
+
+solana-client = { version = "1.14", optional = true }
 solana-sdk = "1.14"
 anchor-lang = ">=0.26.0"
 
 [dependencies.solana-address-lookup-table-program-gateway]
 path = "../solana-address-lookup-table-program-gateway"
-features = ["stub-id", "stub-instruction", "stub-state"]
+features = ["stub-id"]
 
 [dependencies.lookup-table-registry]
 path = "../../programs/lookup-table-registry"

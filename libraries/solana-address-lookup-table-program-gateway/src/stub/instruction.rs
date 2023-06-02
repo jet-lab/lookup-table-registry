@@ -36,7 +36,7 @@ pub fn create_lookup_table(
         },
         vec![
             AccountMeta::new(lookup_table_address, false),
-            AccountMeta::new_readonly(authority_address, true),
+            AccountMeta::new_readonly(authority_address, authority_address != payer_address),
             AccountMeta::new(payer_address, true),
             AccountMeta::new_readonly(system_program::id(), false),
         ],
@@ -130,8 +130,8 @@ mod test {
         for i in 0..6 {
             let n = i * 2;
             assert_eq!(
-                real::create_lookup_table(addr[0 + n], addr[1 + n], SLOTS[i],),
-                super::create_lookup_table(addr[0 + n], addr[1 + n], SLOTS[i],),
+                real::create_lookup_table(addr[0 + n], addr[0 + n], SLOTS[i],),
+                super::create_lookup_table(addr[0 + n], addr[0 + n], SLOTS[i],),
             );
         }
     }

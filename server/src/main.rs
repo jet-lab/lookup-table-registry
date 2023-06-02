@@ -4,7 +4,7 @@ use std::sync::Arc;
 use axum::extract::Path;
 use axum::routing::{get, post};
 use axum::{response::IntoResponse, Extension, Json, Router};
-use lookup_table_registry_client::client::LookupRegistryClient;
+use lookup_table_registry_client::reader::LookupRegistryReader;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use solana_client::nonblocking::rpc_client::RpcClient;
@@ -21,7 +21,7 @@ async fn main() {
     let solana_endpoint = std::env::var("SOLANA_ENDPOINT").unwrap();
 
     let context = ApiContext {
-        registry_client: LookupRegistryClient::new(Arc::new(RpcClient::new(solana_endpoint))),
+        registry_client: LookupRegistryReader::new(Arc::new(RpcClient::new(solana_endpoint))),
     };
 
     let app = Router::new()
@@ -120,7 +120,7 @@ struct GetLookupAddressInput {
 
 #[derive(Clone)]
 struct ApiContext {
-    registry_client: LookupRegistryClient,
+    registry_client: LookupRegistryReader,
 }
 
 #[serde_as]

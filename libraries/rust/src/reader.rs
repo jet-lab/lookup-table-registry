@@ -9,16 +9,16 @@ use endorphin::policy::TTLPolicy;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::instruction::Instruction;
 
-use crate::Registry;
+use crate::common::Registry;
 
 /// A client suitable for querying instruction registries for authorities.
 #[derive(Clone)]
-pub struct LookupRegistryClient {
+pub struct LookupRegistryReader {
     rpc: Arc<RpcClient>,
     cache: Arc<RwLock<endorphin::HashMap<Pubkey, Registry, TTLPolicy>>>,
 }
 
-impl LookupRegistryClient {
+impl LookupRegistryReader {
     pub fn new(rpc: Arc<RpcClient>) -> Self {
         Self {
             rpc,
