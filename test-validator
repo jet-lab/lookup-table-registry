@@ -1,6 +1,6 @@
 upload-idl() {
         sleep 5
-        anchor idl init -f ./target/idl/lookup_table_registry.json Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS --provider.cluster localnet
+        anchor idl init -f ./target/idl/lookup_table_registry.json LTR8xXcSrEDsCbTWPY4JmJREFdMz4uYh65uajkVjzru --provider.cluster localnet
 }
 
 anchor build
