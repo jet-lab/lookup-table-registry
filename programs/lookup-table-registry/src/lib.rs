@@ -117,9 +117,6 @@ pub mod lookup_table_registry {
         if discriminator <= discriminator::DEACTIVATED {
             return err!(ErrorCode::InvalidDiscriminator);
         }
-        if recent_slot < ctx.accounts.registry_account.last_created_slot {
-            return err!(ErrorCode::InvalidSlot);
-        }
         ctx.accounts.registry_account.last_created_slot = recent_slot;
         // Allocate space on the registry account if there are no more slots
         let (len, capacity) = {
