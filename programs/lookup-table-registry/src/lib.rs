@@ -149,7 +149,7 @@ pub mod lookup_table_registry {
 
         // Create the lookup table
         let (lookup_instruction, table) =
-            solana_address_lookup_table_program::instruction::create_lookup_table(
+            solana_address_lookup_table_program::instruction::create_lookup_table_signed(
                 ctx.accounts.authority.key(),
                 ctx.accounts.payer.key(),
                 recent_slot,
