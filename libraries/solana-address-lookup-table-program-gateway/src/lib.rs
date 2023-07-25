@@ -16,14 +16,14 @@ mod stub {
     pub mod state;
 }
 
+#[cfg(feature = "full")]
+pub use solana_address_lookup_table_program::*;
+
 #[cfg(all(not(feature = "full"), feature = "stub-id"))]
 pub use stub::id::*;
 
-#[cfg(feature = "full")]
-pub use solana_address_lookup_table_program::id;
-
-#[cfg(feature = "full")]
-pub use solana_address_lookup_table_program::ID;
+#[cfg(all(not(feature = "full"), feature = "stub-state"))]
+pub use stub::state;
 
 pub mod instruction {
     #[cfg(feature = "full")]
@@ -35,14 +35,6 @@ pub mod instruction {
     // TODO: remove this on upgrade to solana_address_lookup_table_program 1.15
     #[cfg(all(feature = "stub-instruction"))]
     pub use super::stub::instruction::create_lookup_table_signed;
-}
-
-pub mod state {
-    #[cfg(feature = "full")]
-    pub use solana_address_lookup_table_program::state::*;
-
-    #[cfg(all(not(feature = "full"), feature = "stub-state"))]
-    pub use super::stub::state::*;
 }
 
 #[test]
