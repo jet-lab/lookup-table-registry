@@ -1,4 +1,4 @@
-use super::*;
+#![allow(unused, clippy::enum_variant_names)]
 
 use serde::Serialize;
 use solana_program::{
@@ -7,6 +7,8 @@ use solana_program::{
     slot_history::Slot,
     system_program,
 };
+
+use crate::id;
 
 /// Derives the address of an address table account from a wallet address and a recent block's slot.
 pub fn derive_lookup_table_address(
