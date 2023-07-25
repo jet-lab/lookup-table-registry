@@ -120,7 +120,7 @@ struct GetLookupAddressInput {
 
 #[derive(Clone)]
 struct ApiContext {
-    registry_client: LookupRegistryReader,
+    registry_client: LookupRegistryReader<RpcClient>,
 }
 
 #[serde_as]

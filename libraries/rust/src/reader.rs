@@ -6,20 +6,27 @@ use std::{
 
 use anchor_lang::prelude::Pubkey;
 use endorphin::policy::TTLPolicy;
-use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::instruction::Instruction;
 
-use crate::common::Registry;
+use crate::common::{AccountReader, Registry};
 
 /// A client suitable for querying instruction registries for authorities.
-#[derive(Clone)]
-pub struct LookupRegistryReader {
-    rpc: Arc<RpcClient>,
+pub struct LookupRegistryReader<A: AccountReader> {
+    rpc: Arc<A>,
     cache: Arc<RwLock<endorphin::HashMap<Pubkey, Registry, TTLPolicy>>>,
 }
 
-impl LookupRegistryReader {
-    pub fn new(rpc: Arc<RpcClient>) -> Self {
+impl<A: AccountReader> Clone for LookupRegistryReader<A> {
+    fn clone(&self) -> Self {
+        Self {
+            rpc: self.rpc.clone(),
+            cache: self.cache.clone(),
+        }
+    }
+}
+
+impl<A: AccountReader> LookupRegistryReader<A> {
+    pub fn new(rpc: Arc<A>) -> Self {
         Self {
             rpc,
             cache: Arc::new(RwLock::new(endorphin::HashMap::new(TTLPolicy::new()))),
@@ -32,7 +39,7 @@ impl LookupRegistryReader {
     pub async fn update_registries(&self, authorities: &[Pubkey]) -> Vec<Pubkey> {
         let mut errors = Vec::with_capacity(authorities.len());
         for authority in authorities {
-            let Ok(registry) = Registry::fetch(&self.rpc, authority).await else {
+            let Ok(registry) = Registry::fetch(&*self.rpc, authority).await else {
                 errors.push(*authority);
                 continue;
             };
@@ -117,7 +124,7 @@ impl LookupRegistryReader {
         match registry {
             Some(registry) => Some(registry),
             None => {
-                let Ok(registry) = Registry::fetch(&self.rpc, authority).await else {
+                let Ok(registry) = Registry::fetch(&*self.rpc, authority).await else {
                     return None;
                 };
                 let mut writer = self.cache.write().unwrap();

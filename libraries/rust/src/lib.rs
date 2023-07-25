@@ -1,4 +1,5 @@
 use anchor_lang::prelude::Pubkey;
+use solana_sdk::address_lookup_table_account::AddressLookupTableAccount;
 
 pub mod instructions;
 #[cfg(feature = "client")]
@@ -24,6 +25,15 @@ pub struct Entry {
     /// 255 times, a HashSet would only have one entry, while the table is actually
     /// full.
     pub addresses: Vec<Pubkey>,
+}
+
+impl From<Entry> for AddressLookupTableAccount {
+    fn from(value: Entry) -> Self {
+        AddressLookupTableAccount {
+            key: value.lookup_address,
+            addresses: value.addresses,
+        }
+    }
 }
 
 pub fn derive_lookup_table_address(authority: &Pubkey, recent_block_slot: u64) -> Pubkey {

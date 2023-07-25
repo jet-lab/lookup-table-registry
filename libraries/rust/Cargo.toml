@@ -8,9 +8,11 @@ client = ["solana-client", "tokio", "thiserror", "endorphin"]
 default = ["client"]
 
 [dependencies]
-tokio = { version = "1", features = ["sync"], optional = true }
-thiserror = { version = "1", optional = true }
+anyhow = "1.0"
+async-trait = "0.1"
 endorphin = { version = "0.1", optional = true }
+thiserror = { version = "1", optional = true }
+tokio = { version = "1", features = ["sync"], optional = true }
 
 solana-client = { version = "1.14", optional = true }
 solana-sdk = "1.14"
