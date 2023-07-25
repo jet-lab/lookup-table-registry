@@ -1,5 +1,6 @@
 use std::{
     collections::HashSet,
+    ops::Deref,
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -11,12 +12,12 @@ use solana_sdk::instruction::Instruction;
 use crate::common::{AccountReader, Registry};
 
 /// A client suitable for querying instruction registries for authorities.
-pub struct LookupRegistryReader<A: AccountReader + ?Sized> {
-    rpc: Arc<A>,
+pub struct LookupRegistryReader<A> {
+    rpc: A,
     cache: Arc<RwLock<endorphin::HashMap<Pubkey, Registry, TTLPolicy>>>,
 }
 
-impl<A: AccountReader + ?Sized> Clone for LookupRegistryReader<A> {
+impl<A: Clone> Clone for LookupRegistryReader<A> {
     fn clone(&self) -> Self {
         Self {
             rpc: self.rpc.clone(),
@@ -25,14 +26,16 @@ impl<A: AccountReader + ?Sized> Clone for LookupRegistryReader<A> {
     }
 }
 
-impl<A: AccountReader + ?Sized> LookupRegistryReader<A> {
-    pub fn new(rpc: Arc<A>) -> Self {
+impl<A> LookupRegistryReader<A> {
+    pub fn new(rpc: A) -> Self {
         Self {
             rpc,
             cache: Arc::new(RwLock::new(endorphin::HashMap::new(TTLPolicy::new()))),
         }
     }
+}
 
+impl<A: Deref<Target = X>, X: AccountReader> LookupRegistryReader<A> {
     /// Fetch the latest registry addresses for specific authorities.
     ///
     /// Returns the authorities that were not found or otherwise incurred some error
