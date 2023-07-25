@@ -110,9 +110,9 @@ impl_AccountReader!(RpcClient);
 
 /// These are only to be used by the macros defined within this crate.
 pub mod __private {
-    pub use anchor_lang::prelude::Pubkey;
     pub use async_trait::async_trait;
     pub use solana_sdk::account::Account;
+    pub use solana_sdk::pubkey::Pubkey;
 }
 
 /// Delegates the trait to a type with identical methods
@@ -135,7 +135,7 @@ macro_rules! impl_AccountReader {
 
             async fn get_account(
                 &self,
-                pubkey: &Pubkey,
+                pubkey: &$crate::common::__private::Pubkey,
             ) -> std::result::Result<
                 $crate::common::__private::Account,
                 Box<dyn $crate::common::AccountReaderError>,
