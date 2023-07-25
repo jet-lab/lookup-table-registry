@@ -1,3 +1,5 @@
+#![allow(ambiguous_glob_reexports)]
+
 mod stub {
     #[cfg(any(test, all(not(feature = "full"), feature = "stub-id")))]
     solana_program::declare_id!("AddressLookupTab1e1111111111111111111111111");

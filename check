@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+
+_test() {
+    cargo nextest help >/dev/null && cargo nextest run $@
+    cargo nextest help >/dev/null || cargo test $@
+}
+
+full() {
+    anchor build -p lookup_table_registry
+    solana-test-validator -r --bpf-program LTR8xXcSrEDsCbTWPY4JmJREFdMz4uYh65uajkVjzru target/deploy/lookup_table_registry.so &
+    trap "killall -9 solana-test-validator" EXIT
+    sleep 3
+    _test -- --include-ignored test_create_registry
+}
+
+cargo fmt --all --check
+cargo clippy -- -Dwarnings
+_test
+
+$@

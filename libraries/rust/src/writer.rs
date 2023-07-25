@@ -235,6 +235,7 @@ mod tests {
 
     #[tokio::test]
     #[allow(clippy::result_large_err)]
+    #[ignore = "this test takes over 5 minutes. run it with './check full' or 'cargo test -- --include-ignored'"]
     async fn test_create_registry() -> Result<()> {
         let authority_keypair = Keypair::new();
         let authority = authority_keypair.pubkey();
