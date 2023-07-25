@@ -108,28 +108,41 @@ pub trait AccountReader: Send + Sync {
 
 impl_AccountReader!(RpcClient);
 
+/// These are only to be used by the macros defined within this crate.
+pub mod __private {
+    pub use anchor_lang::prelude::Pubkey;
+    pub use async_trait::async_trait;
+    pub use solana_sdk::account::Account;
+}
+
 /// Delegates the trait to a type with identical methods
 #[macro_export]
 macro_rules! impl_AccountReader {
     ($Type:ty) => {
-        #[async_trait]
-        impl AccountReader for $Type {
+        #[$crate::common::__private::async_trait]
+        impl $crate::common::AccountReader for $Type {
             async fn get_multiple_accounts(
                 &self,
-                pubkeys: &[Pubkey],
-            ) -> std::result::Result<Vec<Option<Account>>, Box<dyn AccountReaderError>> {
+                pubkeys: &[$crate::common::__private::Pubkey],
+            ) -> std::result::Result<
+                Vec<Option<$crate::common::__private::Account>>,
+                Box<dyn $crate::common::AccountReaderError>,
+            > {
                 <$Type>::get_multiple_accounts(self, pubkeys)
                     .await
-                    .map_err(|e| Box::new(e) as Box<dyn AccountReaderError>)
+                    .map_err(|e| Box::new(e) as Box<dyn $crate::common::AccountReaderError>)
             }
 
             async fn get_account(
                 &self,
                 pubkey: &Pubkey,
-            ) -> std::result::Result<Account, Box<dyn AccountReaderError>> {
+            ) -> std::result::Result<
+                $crate::common::__private::Account,
+                Box<dyn $crate::common::AccountReaderError>,
+            > {
                 <$Type>::get_account(self, pubkey)
                     .await
-                    .map_err(|e| Box::new(e) as Box<dyn AccountReaderError>)
+                    .map_err(|e| Box::new(e) as Box<dyn $crate::common::AccountReaderError>)
             }
         }
     };
