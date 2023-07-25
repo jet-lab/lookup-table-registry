@@ -4,7 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-full = ["solana-address-lookup-table-program"]
+full = [
+    "solana-address-lookup-table-program",
+    "stub-instruction",
+    # TODO: remove "stub-instruction" when upgrading to solana 1.15 (needed for
+    # signed ix which is only in 1.15 version of the program)
+]
 stub-id = ["solana-program"]
 stub-instruction = ["stub-id", "serde"]
 stub-state = ["stub-id", "serde", "bincode", "solana-frozen-abi-macro", "bytemuck"]
@@ -12,7 +17,12 @@ stub-all = ["stub-id", "stub-instruction", "stub-state"]
 default = []
 
 [dependencies]
-solana-address-lookup-table-program = { version = "1.15", optional = true }
+# This version should be 1.15 because this crate actually requires code from
+# that version, but setting that version here causes conflicts with the jet-v2
+# repo. The required code has been copy and pasted into the `instruction` stub
+# module to ensure compatibility, but ideally, everything would be upgraded to
+# solana 1.15 instead.
+solana-address-lookup-table-program = { version = "1.14", optional = true }
 
 # for stubbing
 solana-program = { version = "1.14", optional = true }
