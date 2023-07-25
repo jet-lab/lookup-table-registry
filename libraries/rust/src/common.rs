@@ -136,7 +136,7 @@ macro_rules! impl_AccountReader {
 }
 use impl_AccountReader;
 
-pub trait AccountReaderError: std::fmt::Display + std::fmt::Debug + 'static {
+pub trait AccountReaderError: std::fmt::Display + std::fmt::Debug + Send + Sync + 'static {
     fn is_account_not_found(&self) -> bool;
 }
 
