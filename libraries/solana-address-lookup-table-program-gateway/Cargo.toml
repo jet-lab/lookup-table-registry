@@ -12,7 +12,7 @@ stub-all = ["stub-id", "stub-instruction", "stub-state"]
 default = []
 
 [dependencies]
-solana-address-lookup-table-program = { version = "1.14", optional = true }
+solana-address-lookup-table-program = { version = "1.15", optional = true }
 
 # for stubbing
 solana-program = { version = "1.14", optional = true }
