@@ -33,7 +33,7 @@ pub mod instruction {
     pub use super::stub::instruction::*;
 
     // TODO: remove this on upgrade to solana_address_lookup_table_program 1.15
-    #[cfg(all(feature = "stub-instruction"))]
+    #[cfg(feature = "stub-instruction")]
     pub use super::stub::instruction::create_lookup_table_signed;
 }
 

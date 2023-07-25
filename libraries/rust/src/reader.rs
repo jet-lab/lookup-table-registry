@@ -11,12 +11,12 @@ use solana_sdk::instruction::Instruction;
 use crate::common::{AccountReader, Registry};
 
 /// A client suitable for querying instruction registries for authorities.
-pub struct LookupRegistryReader<A: AccountReader> {
+pub struct LookupRegistryReader<A: AccountReader + ?Sized> {
     rpc: Arc<A>,
     cache: Arc<RwLock<endorphin::HashMap<Pubkey, Registry, TTLPolicy>>>,
 }
 
-impl<A: AccountReader> Clone for LookupRegistryReader<A> {
+impl<A: AccountReader + ?Sized> Clone for LookupRegistryReader<A> {
     fn clone(&self) -> Self {
         Self {
             rpc: self.rpc.clone(),
@@ -25,7 +25,7 @@ impl<A: AccountReader> Clone for LookupRegistryReader<A> {
     }
 }
 
-impl<A: AccountReader> LookupRegistryReader<A> {
+impl<A: AccountReader + ?Sized> LookupRegistryReader<A> {
     pub fn new(rpc: Arc<A>) -> Self {
         Self {
             rpc,
