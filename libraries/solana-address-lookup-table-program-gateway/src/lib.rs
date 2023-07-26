@@ -1,21 +1,45 @@
+/// This allows the stubs to be available internally:
+/// - for tests
+/// - even if "full" is active
+///
+/// "full" only deactivates the pub re-exports
 mod stub {
-    #[cfg(any(test, all(not(feature = "full"), feature = "stub-id")))]
-    solana_program::declare_id!("AddressLookupTab1e1111111111111111111111111");
+    pub mod id {
+        #[cfg(any(test, feature = "stub-id"))]
+        solana_program::declare_id!("AddressLookupTab1e1111111111111111111111111");
+    }
 
-    #[cfg(any(test, all(not(feature = "full"), feature = "stub-instruction")))]
+    #[cfg(any(test, feature = "stub-instruction"))]
     pub mod instruction;
 
-    #[cfg(any(test, all(not(feature = "full"), feature = "stub-state")))]
+    #[cfg(any(test, feature = "stub-state"))]
     pub mod state;
 }
-pub use stub::*;
 
 #[cfg(feature = "full")]
 pub use solana_address_lookup_table_program::*;
 
+#[cfg(all(not(feature = "full"), feature = "stub-id"))]
+pub use stub::id::*;
+
+#[cfg(all(not(feature = "full"), feature = "stub-state"))]
+pub use stub::state;
+
+pub mod instruction {
+    #[cfg(feature = "full")]
+    pub use solana_address_lookup_table_program::instruction::*;
+
+    #[cfg(all(not(feature = "full"), feature = "stub-instruction"))]
+    pub use super::stub::instruction::*;
+
+    // TODO: remove this on upgrade to solana_address_lookup_table_program 1.15
+    #[cfg(feature = "stub-instruction")]
+    pub use super::stub::instruction::create_lookup_table_signed;
+}
+
 #[test]
 fn stub_id_is_correct() {
-    assert_eq!(stub::ID, solana_address_lookup_table_program::ID);
+    assert_eq!(stub::id::ID, solana_address_lookup_table_program::ID);
 }
 
 #[cfg(test)]

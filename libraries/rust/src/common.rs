@@ -1,10 +1,12 @@
-use std::sync::Arc;
-
 use anchor_lang::{prelude::Pubkey, AccountDeserialize};
+use async_trait::async_trait;
 use lookup_table_registry::RegistryAccount;
 use solana_address_lookup_table_program_gateway::state::AddressLookupTable;
-use solana_client::nonblocking::rpc_client::RpcClient;
-use solana_sdk::{account::ReadableAccount, transaction::TransactionError};
+use solana_client::{client_error::ClientError, nonblocking::rpc_client::RpcClient};
+use solana_sdk::{
+    account::{Account, ReadableAccount},
+    transaction::TransactionError,
+};
 
 use crate::{Entry, LOOKUP_TABLE_REGISTRY_ID};
 
@@ -16,16 +18,21 @@ pub struct Registry {
 }
 
 impl Registry {
-    pub async fn fetch(rpc: &Arc<RpcClient>, authority: &Pubkey) -> Result<Self> {
+    pub async fn fetch(
+        rpc: &(impl AccountReader + ?Sized),
+        authority: &Pubkey,
+    ) -> LookupRegistryResult<Self> {
         let registry_address =
             Pubkey::find_program_address(&[authority.as_ref()], &LOOKUP_TABLE_REGISTRY_ID).0;
         let registry = match rpc.get_account(&registry_address).await {
             Ok(value) => value,
-            Err(e) => match e.get_transaction_error() {
-                Some(e) if e == TransactionError::AccountNotFound => {
+            Err(e) => match e {
+                AccountReadError::AccountNotFound => {
                     return Err(LookupRegistryError::RegistryNotFound(registry_address))
                 }
-                _ => return Err(LookupRegistryError::ClientError(e)),
+                AccountReadError::Custom(e) => {
+                    return Err(LookupRegistryError::AccountReadError(e))
+                }
             },
         };
         let registry = RegistryAccount::try_deserialize(&mut registry.data())?;
@@ -80,10 +87,62 @@ pub enum LookupRegistryError {
     #[cfg(feature = "client")]
     #[error("Error with Solana client")]
     ClientError(#[from] solana_client::client_error::ClientError),
+    #[error("Error reading account: {0}")]
+    AccountReadError(anyhow::Error),
     #[error("Error with Anchor")]
     AnchorError(#[from] anchor_lang::error::Error),
     #[error("General error: {0}")]
     GeneralError(String),
 }
 
-pub type Result<T> = std::result::Result<T, LookupRegistryError>;
+pub type LookupRegistryResult<T> = Result<T, LookupRegistryError>;
+
+#[async_trait]
+pub trait AccountReader: Send + Sync {
+    async fn get_multiple_accounts(
+        &self,
+        pubkeys: &[Pubkey],
+    ) -> Result<Vec<Option<Account>>, AccountReadError>;
+
+    async fn get_account(&self, pubkey: &Pubkey) -> Result<Account, AccountReadError>;
+}
+
+#[async_trait]
+impl AccountReader for RpcClient {
+    async fn get_multiple_accounts(
+        &self,
+        pubkeys: &[Pubkey],
+    ) -> Result<Vec<Option<Account>>, AccountReadError> {
+        <RpcClient>::get_multiple_accounts(self, pubkeys)
+            .await
+            .map_err(Into::into)
+    }
+
+    async fn get_account(&self, pubkey: &Pubkey) -> Result<Account, AccountReadError> {
+        <RpcClient>::get_account(self, pubkey)
+            .await
+            .map_err(Into::into)
+    }
+}
+
+#[derive(Debug)]
+pub enum AccountReadError {
+    AccountNotFound,
+    Custom(anyhow::Error),
+}
+
+impl From<ClientError> for AccountReadError {
+    fn from(value: ClientError) -> Self {
+        if value.get_transaction_error() == Some(TransactionError::AccountNotFound) {
+            AccountReadError::AccountNotFound
+        } else {
+            AccountReadError::Custom(anyhow::anyhow!(value))
+        }
+    }
+}
+
+impl From<anyhow::Error> for AccountReadError {
+    fn from(value: anyhow::Error) -> Self {
+        AccountReadError::Custom(value)
+    }
+}
