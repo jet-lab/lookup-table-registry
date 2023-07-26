@@ -7,7 +7,9 @@ use std::{
 
 use anchor_lang::prelude::Pubkey;
 use endorphin::policy::TTLPolicy;
-use solana_sdk::instruction::Instruction;
+use solana_sdk::{
+    address_lookup_table_account::AddressLookupTableAccount, instruction::Instruction,
+};
 
 use crate::common::{AccountReader, Registry};
 
@@ -50,6 +52,18 @@ impl<A: Deref<Target = X>, X: AccountReader> LookupRegistryReader<A> {
             writer.insert(*authority, registry, Duration::from_secs(3600));
         }
         errors
+    }
+
+    /// Returns all the lookup tables that are in the registries owned by the
+    /// provided authorities.
+    pub async fn get_tables(&self, authorities: &[Pubkey]) -> Vec<AddressLookupTableAccount> {
+        let mut ret = vec![];
+        for authority in authorities {
+            if let Some(r) = self.get_registry(authority).await {
+                ret.extend(r.tables.into_iter().map(Into::into));
+            }
+        }
+        ret
     }
 
     /// Find lookup addresses such that as many accounts as possible in the provided

@@ -18,18 +18,22 @@ pub struct Registry {
 }
 
 impl Registry {
-    pub async fn fetch(rpc: &(impl AccountReader + ?Sized), authority: &Pubkey) -> Result<Self> {
+    pub async fn fetch(
+        rpc: &(impl AccountReader + ?Sized),
+        authority: &Pubkey,
+    ) -> LookupRegistryResult<Self> {
         let registry_address =
             Pubkey::find_program_address(&[authority.as_ref()], &LOOKUP_TABLE_REGISTRY_ID).0;
         let registry = match rpc.get_account(&registry_address).await {
             Ok(value) => value,
-            Err(e) => {
-                if e.is_account_not_found() {
-                    return Err(LookupRegistryError::RegistryNotFound(registry_address));
-                } else {
-                    return Err(LookupRegistryError::AccountReadError(e));
+            Err(e) => match e {
+                AccountReadError::AccountNotFound => {
+                    return Err(LookupRegistryError::RegistryNotFound(registry_address))
                 }
-            }
+                AccountReadError::Custom(e) => {
+                    return Err(LookupRegistryError::AccountReadError(e))
+                }
+            },
         };
         let registry = RegistryAccount::try_deserialize(&mut registry.data())?;
 
@@ -84,26 +88,23 @@ pub enum LookupRegistryError {
     #[error("Error with Solana client")]
     ClientError(#[from] solana_client::client_error::ClientError),
     #[error("Error reading account: {0}")]
-    AccountReadError(Box<dyn AccountReaderError>),
+    AccountReadError(anyhow::Error),
     #[error("Error with Anchor")]
     AnchorError(#[from] anchor_lang::error::Error),
     #[error("General error: {0}")]
     GeneralError(String),
 }
 
-pub type Result<T> = std::result::Result<T, LookupRegistryError>;
+pub type LookupRegistryResult<T> = Result<T, LookupRegistryError>;
 
 #[async_trait]
 pub trait AccountReader: Send + Sync {
     async fn get_multiple_accounts(
         &self,
         pubkeys: &[Pubkey],
-    ) -> std::result::Result<Vec<Option<Account>>, Box<dyn AccountReaderError>>;
+    ) -> Result<Vec<Option<Account>>, AccountReadError>;
 
-    async fn get_account(
-        &self,
-        pubkey: &Pubkey,
-    ) -> std::result::Result<Account, Box<dyn AccountReaderError>>;
+    async fn get_account(&self, pubkey: &Pubkey) -> Result<Account, AccountReadError>;
 }
 
 impl_AccountReader!(RpcClient);
@@ -126,11 +127,11 @@ macro_rules! impl_AccountReader {
                 pubkeys: &[$crate::common::__private::Pubkey],
             ) -> std::result::Result<
                 Vec<Option<$crate::common::__private::Account>>,
-                Box<dyn $crate::common::AccountReaderError>,
+                $crate::common::AccountReadError,
             > {
                 <$Type>::get_multiple_accounts(self, pubkeys)
                     .await
-                    .map_err(|e| Box::new(e) as Box<dyn $crate::common::AccountReaderError>)
+                    .map_err(Into::into)
             }
 
             async fn get_account(
@@ -138,29 +139,36 @@ macro_rules! impl_AccountReader {
                 pubkey: &$crate::common::__private::Pubkey,
             ) -> std::result::Result<
                 $crate::common::__private::Account,
-                Box<dyn $crate::common::AccountReaderError>,
+                $crate::common::AccountReadError,
             > {
-                <$Type>::get_account(self, pubkey)
-                    .await
-                    .map_err(|e| Box::new(e) as Box<dyn $crate::common::AccountReaderError>)
+                <$Type>::get_account(self, pubkey).await.map_err(Into::into)
             }
         }
     };
 }
 use impl_AccountReader;
 
-pub trait AccountReaderError: std::fmt::Display + std::fmt::Debug + Send + Sync + 'static {
-    fn is_account_not_found(&self) -> bool;
+#[derive(Debug)]
+pub enum AccountReadError {
+    AccountNotFound,
+    Custom(anyhow::Error),
 }
 
-impl AccountReaderError for ClientError {
-    fn is_account_not_found(&self) -> bool {
-        self.get_transaction_error() == Some(TransactionError::AccountNotFound)
+pub trait AnyError: std::fmt::Display + std::fmt::Debug + Send + Sync + 'static {}
+impl<E: std::fmt::Display + std::fmt::Debug + Send + Sync + 'static> AnyError for E {}
+
+impl From<ClientError> for AccountReadError {
+    fn from(value: ClientError) -> Self {
+        if value.get_transaction_error() == Some(TransactionError::AccountNotFound) {
+            AccountReadError::AccountNotFound
+        } else {
+            AccountReadError::Custom(anyhow::anyhow!(value))
+        }
     }
 }
 
-impl AccountReaderError for anyhow::Error {
-    fn is_account_not_found(&self) -> bool {
-        false
+impl From<anyhow::Error> for AccountReadError {
+    fn from(value: anyhow::Error) -> Self {
+        AccountReadError::Custom(value)
     }
 }

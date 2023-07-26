@@ -12,7 +12,7 @@ use solana_sdk::{
     signer::Signer, transaction::Transaction,
 };
 
-use crate::common::{LookupRegistryError, Result};
+use crate::common::{LookupRegistryError, LookupRegistryResult};
 use crate::instructions::InstructionBuilder;
 
 /// A writer client that creates and updates a registry
@@ -40,7 +40,7 @@ impl LookupRegistryWriter {
         authority: Pubkey,
         payer: Pubkey,
         signer: &dyn Signer,
-    ) -> Result<Self> {
+    ) -> LookupRegistryResult<Self> {
         let builder = InstructionBuilder::new(authority, payer);
         let create_ix = builder.init_registry();
 
@@ -80,14 +80,17 @@ impl LookupRegistryWriter {
     ///
     /// Errors:
     /// - Registry has not been created
-    pub async fn get_registry(&self) -> Result<RegistryAccount> {
+    pub async fn get_registry(&self) -> LookupRegistryResult<RegistryAccount> {
         let account = self.rpc.get_account(&self.registry_address).await?;
         let registry_account = RegistryAccount::try_deserialize(&mut account.data())?;
         Ok(registry_account)
     }
 
     /// Find lookup table addresses in the registry by a discriminator
-    pub async fn find_lookup_table_addresses(&self, discriminator: u64) -> Result<Vec<Pubkey>> {
+    pub async fn find_lookup_table_addresses(
+        &self,
+        discriminator: u64,
+    ) -> LookupRegistryResult<Vec<Pubkey>> {
         let registry = self.get_registry().await?;
         let addresses = registry
             .tables
@@ -107,7 +110,7 @@ impl LookupRegistryWriter {
     pub async fn get_lookup_table(
         &self,
         lookup_table: Pubkey,
-    ) -> Result<(RegistryEntry, AddressLookupTableAccount)> {
+    ) -> LookupRegistryResult<(RegistryEntry, AddressLookupTableAccount)> {
         // Get the reigstry and lookup table
         let accounts = self
             .rpc
@@ -145,7 +148,7 @@ impl LookupRegistryWriter {
         payer: Option<&Pubkey>,
         signer: &dyn Signer,
         discriminator: u64,
-    ) -> Result<(Pubkey, u64)> {
+    ) -> LookupRegistryResult<(Pubkey, u64)> {
         // Introduce a small delay to prevent slot conflicts
         tokio::time::sleep(std::time::Duration::from_secs(3)).await;
         let recent_slot = self.rpc.get_slot().await?;
@@ -166,7 +169,7 @@ impl LookupRegistryWriter {
         lookup_table: Pubkey,
         payer: Option<&Pubkey>,
         signer: &dyn Signer,
-    ) -> Result<()> {
+    ) -> LookupRegistryResult<()> {
         let ix = self.builder.remove_lookup_table(lookup_table);
 
         self.send_transaction(&[ix], payer, signer).await?;
@@ -181,7 +184,7 @@ impl LookupRegistryWriter {
         addresses: &[Pubkey],
         payer: Option<&Pubkey>,
         signer: &dyn Signer,
-    ) -> Result<()> {
+    ) -> LookupRegistryResult<()> {
         let (entry, table) = self.get_lookup_table(lookup_table).await?;
         let distinct_addresses = addresses
             .iter()
@@ -206,7 +209,7 @@ impl LookupRegistryWriter {
         instructions: &[Instruction],
         payer: Option<&Pubkey>,
         signer: &dyn Signer,
-    ) -> Result<Signature> {
+    ) -> LookupRegistryResult<Signature> {
         let hash = self.rpc.get_latest_blockhash().await?;
 
         let transaction = Transaction::new_signed_with_payer(instructions, payer, &[signer], hash);
@@ -236,7 +239,7 @@ mod tests {
     #[tokio::test]
     #[allow(clippy::result_large_err)]
     #[ignore = "this test takes over 5 minutes. run it with './check full' or 'cargo test -- --include-ignored'"]
-    async fn test_create_registry() -> Result<()> {
+    async fn test_create_registry() -> LookupRegistryResult<()> {
         let authority_keypair = Keypair::new();
         let authority = authority_keypair.pubkey();
 
