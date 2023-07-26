@@ -107,46 +107,23 @@ pub trait AccountReader: Send + Sync {
     async fn get_account(&self, pubkey: &Pubkey) -> Result<Account, AccountReadError>;
 }
 
-impl_AccountReader!(RpcClient);
+#[async_trait]
+impl AccountReader for RpcClient {
+    async fn get_multiple_accounts(
+        &self,
+        pubkeys: &[Pubkey],
+    ) -> Result<Vec<Option<Account>>, AccountReadError> {
+        <RpcClient>::get_multiple_accounts(self, pubkeys)
+            .await
+            .map_err(Into::into)
+    }
 
-/// These are only to be used by the macros defined within this crate.
-pub mod __private {
-    pub use async_trait::async_trait;
-    pub use solana_sdk::account::Account;
-    pub use solana_sdk::pubkey::Pubkey;
+    async fn get_account(&self, pubkey: &Pubkey) -> Result<Account, AccountReadError> {
+        <RpcClient>::get_account(self, pubkey)
+            .await
+            .map_err(Into::into)
+    }
 }
-
-/// Delegates the trait to a type with identical methods
-#[macro_export]
-macro_rules! impl_AccountReader {
-    ($Type:ty) => {
-        #[$crate::common::__private::async_trait]
-        impl $crate::common::AccountReader for $Type {
-            async fn get_multiple_accounts(
-                &self,
-                pubkeys: &[$crate::common::__private::Pubkey],
-            ) -> std::result::Result<
-                Vec<Option<$crate::common::__private::Account>>,
-                $crate::common::AccountReadError,
-            > {
-                <$Type>::get_multiple_accounts(self, pubkeys)
-                    .await
-                    .map_err(Into::into)
-            }
-
-            async fn get_account(
-                &self,
-                pubkey: &$crate::common::__private::Pubkey,
-            ) -> std::result::Result<
-                $crate::common::__private::Account,
-                $crate::common::AccountReadError,
-            > {
-                <$Type>::get_account(self, pubkey).await.map_err(Into::into)
-            }
-        }
-    };
-}
-use impl_AccountReader;
 
 #[derive(Debug)]
 pub enum AccountReadError {
