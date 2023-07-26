@@ -131,9 +131,6 @@ pub enum AccountReadError {
     Custom(anyhow::Error),
 }
 
-pub trait AnyError: std::fmt::Display + std::fmt::Debug + Send + Sync + 'static {}
-impl<E: std::fmt::Display + std::fmt::Debug + Send + Sync + 'static> AnyError for E {}
-
 impl From<ClientError> for AccountReadError {
     fn from(value: ClientError) -> Self {
         if value.get_transaction_error() == Some(TransactionError::AccountNotFound) {
