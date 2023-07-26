@@ -8,4 +8,6 @@ This authority can be a PDA, however a program wishing to make PDAs sign should 
 
 ## Testing
 
-Before running the Rust unit tests, start a validator by running `./test-validator`.
+Run the fast tests with `./check`.
+
+To include localnet test, which takes five minutes to complete, run `./check full`.
