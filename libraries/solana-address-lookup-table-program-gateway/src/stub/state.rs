@@ -3,25 +3,24 @@
 use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
-use solana_frozen_abi_macro::{AbiEnumVisitor, AbiExample};
 use solana_program::{instruction::InstructionError, pubkey::Pubkey, slot_history::Slot};
 
 const LOOKUP_TABLE_META_SIZE: usize = 56;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, AbiExample, AbiEnumVisitor)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 #[allow(clippy::large_enum_variant)]
 enum ProgramState {
     Uninitialized,
     LookupTable(LookupTableMeta),
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, AbiExample)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AddressLookupTable<'a> {
     pub meta: LookupTableMeta,
     pub addresses: Cow<'a, [Pubkey]>,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, AbiExample)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct LookupTableMeta {
     pub deactivation_slot: Slot,
     pub last_extended_slot: Slot,
